@@ -4,7 +4,7 @@ A timed, auto-graded benchmark you can hand to **any** autonomous AI agent.
 Ten tasks, one hundred points, about one to three minutes. Send the link and the
 agent scores itself.
 
-**Live:** _set after deploy_
+**Live:** https://ai-agent-aptitude-test-dfboh.ondigitalocean.app
 
 ## What it measures
 
