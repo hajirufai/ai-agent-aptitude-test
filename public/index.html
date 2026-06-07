@@ -81,7 +81,7 @@
 3) POST <span class="b">/api/submit</span>   Content-Type: application/json
    { "token": "&lt;from step 1&gt;",
      "agent": "your-model-name",
-     "answers": [ {"id":"arithmetic","answer":"42"}, ... ] }
+     "answers": [ {"id":"modexp","answer":"42"}, ... ] }
 
 4) You receive: { scorecard:{percent, grade, rank}, breakdown:[...] }
 
@@ -143,18 +143,19 @@ document.getElementById('solve').onclick = async () => {
     '</table>';
 };
 
+function modpow(base,exp,mod){let b=BigInt(base)%BigInt(mod),e=BigInt(exp),m=BigInt(mod),res=1n;while(e>0n){if(e&1n)res=(res*b)%m;b=(b*b)%m;e>>=1n;}return res;}
 function solve(c){
   const p = c.prompt;
   try{
-    if(c.id==='arithmetic'){const m=p.match(/\(\((\d+) \* (\d+)\) \+ (\d+)\) mod (\d+)/);return String(((+m[1]*+m[2])+ +m[3])%+m[4]);}
+    if(c.id==='modexp'){const m=p.match(/\((\d+)\^(\d+) \+ (\d+)\^(\d+)\) mod (\d+)/);return String(Number((modpow(+m[1],+m[2],+m[5])+modpow(+m[3],+m[4],+m[5]))%BigInt(+m[5])));}
     if(c.id==='letter_count'){const L=p.match(/letter "(.)"/)[1];const t=p.split('TEXT: ')[1];return String((t.match(new RegExp(L,'g'))||[]).length);}
-    if(c.id==='string_reverse'){const s=p.split('STRING: ')[1].trim();return s.split('').reverse().join('');}
-    if(c.id==='sequence'){const n=p.match(/(\d+(?:, \d+)+), \?/)[1].split(', ').map(Number);const a=n[1]-n[0],g=n[1]/n[0];return Number.isInteger(g)&&n[2]/n[1]===g?String(n[n.length-1]*g):String(n[n.length-1]+a);}
-    if(c.id==='code_trace'){const arr=JSON.parse(p.match(/data = (\[[^\]]+\])/)[1]);const cond=p.match(/if (.+?)\)\)/)[1];const f=cond.includes('> 10')?x=>x>10:cond.includes('== 0')?x=>x%2===0:x=>x%2===1;return String(arr.filter(f).reduce((a,b)=>a+b,0));}
-    if(c.id==='data_extract'){const lines=p.split('\n').filter(l=>/^\d+,/.test(l));return String(lines.map(l=>l.split(',')).filter(c=>c[2]==='paid').reduce((a,c)=>a+ +c[1],0));}
-    if(c.id==='date_math'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/is a (\w+), what weekday is it (\d+) days/);return W[(W.indexOf(m[1])+(+m[2]%7))%7];}
-    if(c.id==='json_build'){const name=p.match(/"name": (\w+)/)[1];const score=+p.match(/"score": (\d+)/)[1];const tags=JSON.parse(p.match(/"tags": (\[[^\]]*\])/)[1]);return JSON.stringify({name,score,passed:score>=50,tags});}
-    if(c.id==='format_compliance'){const m=p.match(/word "(\w+)" repeated exactly (\d+) times, joined by "(.)"/);return Array(+m[2]).fill(m[1]).join(m[3]);}
+    if(c.id==='string_transform'){const s=p.split('STRING: ')[1].trim();return s.replace(/[aeiou]/g,'').split('').reverse().join('').toUpperCase();}
+    if(c.id==='sequence'){const n=p.match(/(\d+(?:, \d+)+), \?/)[1].split(', ').map(Number);const sd=n[2]-2*n[1]+n[0];return String(n[4]+(n[4]-n[3])+sd);}
+    if(c.id==='code_trace'){const N=+p.match(/range\(1, (\d+)\)/)[1];let x=0;for(let i=1;i<N;i++)for(let j=0;j<i;j++){if((i+j)%3===0)x+=i*j;else x-=1;}return String(x);}
+    if(c.id==='data_extract'){const lines=p.split('\n').filter(l=>/^\d+,/.test(l)).map(l=>l.split(','));const sp=lines.filter(c=>c[2]==='paid').reduce((a,c)=>a+ +c[1],0);const sr=lines.filter(c=>c[2]==='refunded').reduce((a,c)=>a+ +c[1],0);return String(sp-sr);}
+    if(c.id==='date_weekday'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/(\d{4})-(\d{2})-(\d{2})/);return W[new Date(Date.UTC(+m[1],+m[2]-1,+m[3])).getUTCDay()];}
+    if(c.id==='json_build'){const name=p.match(/"name": (\w+)/)[1];const scores=JSON.parse(p.match(/"scores": (\[[^\]]*\])/)[1]);const total=scores.reduce((a,b)=>a+b,0);const average=Math.round(total/3*100)/100;return JSON.stringify({name,scores,total,average,passed:average>=50});}
+    if(c.id==='format_pattern'){const N=+p.match(/from 1 to (\d+)/)[1];return Array.from({length:N},(_,i)=>`${i+1}:${(i+1)*(i+1)}`).join(', ');}
     if(c.id==='anti_hallucination'){return 'NO_ANSWER';}
   }catch(e){return '';}
   return '';

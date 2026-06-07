@@ -1,6 +1,6 @@
 'use strict';
 /*
- * AI Agent Aptitude Test - challenge engine
+ * AI Agent Aptitude Test - challenge engine (HARD edition)
  *
  * Stateless and cheat-resistant:
  *  - /api/start derives a fresh challenge set from a random 32-bit seed
@@ -8,10 +8,12 @@
  *  - expected answers are NEVER sent to the client; they are re-derived from the
  *    seed at grading time, so an agent cannot read the answer key
  *
- * Ten tasks spanning the capabilities that separate a strong agent from a weak one:
- *   precise arithmetic, character-level counting, string ops, pattern induction,
- *   code tracing, structured data extraction, calendar math, strict JSON output,
- *   exact format compliance, and hallucination resistance.
+ * Ten deliberately hard tasks. Each is computable by careful step-by-step work,
+ * but every one targets a place where language models slip when they reason in
+ * their head instead of executing: modular exponentiation, long character
+ * counting, multi-step string transforms, quadratic pattern induction, nested
+ * loop simulation, multi-condition data aggregation, real calendar weekdays,
+ * computed nested JSON, computed format patterns, and hallucination resistance.
  */
 
 const crypto = require('crypto');
@@ -28,165 +30,180 @@ function rng(seed) {
 }
 const pick = (r, arr) => arr[Math.floor(r() * arr.length)];
 const int = (r, lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+const num = (ans) => Number(String(ans).replace(/[,\s]/g, '').trim());
+
+// modular exponentiation with BigInt for exactness
+function modpow(base, exp, mod) {
+  let b = BigInt(base) % BigInt(mod), e = BigInt(exp), m = BigInt(mod), res = 1n;
+  while (e > 0n) { if (e & 1n) res = (res * b) % m; b = (b * b) % m; e >>= 1n; }
+  return res;
+}
 
 const WORDS = ['river', 'forest', 'mirror', 'thunder', 'orange', 'parrot', 'silver',
   'garden', 'rocket', 'pepper', 'harbor', 'marble', 'crimson', 'pretzel', 'terror',
-  'corner', 'barrier', 'arrow', 'carrot', 'error', 'morning', 'ranger', 'warrior'];
+  'corner', 'barrier', 'arrow', 'carrot', 'error', 'morning', 'ranger', 'warrior',
+  'lantern', 'pattern', 'breeze', 'tunnel', 'velvet', 'cluster', 'meadow'];
 const NAMES = ['Ada', 'Linus', 'Grace', 'Alan', 'Hedy', 'Dennis', 'Margaret', 'Ken'];
 const STATUSES = ['paid', 'pending', 'refunded', 'failed'];
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// ---- the ten task builders -----------------------------------------------
-// Each returns { id, category, points, prompt, grader } where grader(answer)->bool|number(0..1)
-
+// ---- the ten HARD task builders ------------------------------------------
+// Each returns { id, category, points, prompt, expected, grade(answer)->bool }
 function buildTasks(seed) {
   const r = rng(seed);
   const tasks = [];
 
-  // 1. precise modular arithmetic
+  // 1. modular exponentiation (sum of two powers, mod m)
   {
-    const a = int(r, 23, 99), b = int(r, 23, 99), c = int(r, 100, 999), d = int(r, 7, 97);
-    const expected = ((a * b + c) % d);
+    const a = int(r, 3, 9), b = int(r, 14, 31), c = int(r, 3, 9), d = int(r, 14, 31), m = int(r, 1000, 9999);
+    const expected = Number((modpow(a, b, m) + modpow(c, d, m)) % BigInt(m));
     tasks.push({
-      id: 'arithmetic', category: 'Precise computation', points: 10,
-      prompt: `Compute ((${a} * ${b}) + ${c}) mod ${d}. Reply with the single integer result.`,
+      id: 'modexp', category: 'Precise computation', points: 10,
+      prompt: `Compute (${a}^${b} + ${c}^${d}) mod ${m}. That is, raise each base to its exponent, add the two results, then take the remainder modulo ${m}. Reply with the single integer result.`,
       expected,
-      grade: (ans) => Number(String(ans).trim()) === expected,
+      grade: (ans) => num(ans) === expected,
     });
   }
 
-  // 2. character-level counting (a classic LLM weak spot)
+  // 2. long single-letter counting (canonical LLM failure mode)
   {
-    const n = int(r, 7, 10);
+    const n = int(r, 28, 36);
     const phrase = Array.from({ length: n }, () => pick(r, WORDS)).join(' ');
-    const letter = pick(r, ['r', 'e', 'o', 'a']);
+    const letter = pick(r, ['r', 'e', 'a', 'o', 't', 'n']);
     const expected = (phrase.match(new RegExp(letter, 'g')) || []).length;
     tasks.push({
       id: 'letter_count', category: 'Character-level reasoning', points: 10,
-      prompt: `In the text below, how many times does the lowercase letter "${letter}" appear? Reply with a single integer.\n\nTEXT: ${phrase}`,
+      prompt: `In the text below, count exactly how many times the lowercase letter "${letter}" appears (count every occurrence, including repeats inside a word). Reply with a single integer.\n\nTEXT: ${phrase}`,
       expected,
-      grade: (ans) => Number(String(ans).trim()) === expected,
+      grade: (ans) => num(ans) === expected,
     });
   }
 
-  // 3. string reversal
+  // 3. multi-step string transform
   {
-    const len = int(r, 10, 14);
-    const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+    const len = int(r, 14, 18);
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
     let s = '';
     for (let i = 0; i < len; i++) s += alphabet[Math.floor(r() * alphabet.length)];
-    const expected = s.split('').reverse().join('');
+    const expected = s.replace(/[aeiou]/g, '').split('').reverse().join('').toUpperCase();
     tasks.push({
-      id: 'string_reverse', category: 'String manipulation', points: 10,
-      prompt: `Reverse this string exactly (character order). Reply with only the reversed string.\n\nSTRING: ${s}`,
+      id: 'string_transform', category: 'String manipulation', points: 10,
+      prompt: `Apply these three steps to the STRING below, in order:\n` +
+        `(1) delete every vowel (a, e, i, o, u),\n(2) reverse the characters that remain,\n(3) convert the result to UPPERCASE.\n` +
+        `Reply with only the final string.\n\nSTRING: ${s}`,
       expected,
       grade: (ans) => String(ans).trim() === expected,
     });
   }
 
-  // 4. pattern induction (mixed arithmetic / geometric)
+  // 4. quadratic pattern induction (constant second difference)
   {
-    const geometric = r() < 0.5;
-    let seq, expected;
-    if (geometric) {
-      const start = int(r, 2, 5), ratio = int(r, 2, 4);
-      seq = [start]; for (let i = 1; i < 5; i++) seq.push(seq[i - 1] * ratio);
-      expected = seq[4] * ratio;
-    } else {
-      const start = int(r, 3, 12), step = int(r, 3, 11);
-      seq = [start]; for (let i = 1; i < 5; i++) seq.push(seq[i - 1] + step);
-      expected = seq[4] + step;
-    }
+    const A = int(r, 1, 3), B = int(r, 0, 6), C = int(r, 0, 9);
+    const f = (k) => A * k * k + B * k + C;
+    const seq = [1, 2, 3, 4, 5].map(f);
+    const expected = f(6);
     tasks.push({
       id: 'sequence', category: 'Pattern induction', points: 10,
-      prompt: `What is the next number in this sequence? Reply with a single integer.\n\n${seq.join(', ')}, ?`,
+      prompt: `These numbers follow a fixed quadratic rule (the difference between consecutive differences is constant). What is the next number? Reply with a single integer.\n\n${seq.join(', ')}, ?`,
       expected,
-      grade: (ans) => Number(String(ans).trim()) === expected,
+      grade: (ans) => num(ans) === expected,
     });
   }
 
-  // 5. code tracing
+  // 5. nested-loop code tracing (long simulation)
   {
-    const arr = Array.from({ length: 6 }, () => int(r, 1, 20));
-    const mode = pick(r, ['even', 'odd', 'gt10']);
-    let expected;
-    if (mode === 'even') expected = arr.filter(x => x % 2 === 0).reduce((a, b) => a + b, 0);
-    else if (mode === 'odd') expected = arr.filter(x => x % 2 === 1).reduce((a, b) => a + b, 0);
-    else expected = arr.filter(x => x > 10).reduce((a, b) => a + b, 0);
-    const cond = mode === 'even' ? 'x % 2 == 0' : mode === 'odd' ? 'x % 2 == 1' : 'x > 10';
+    const N = int(r, 6, 9);
+    let x = 0;
+    for (let i = 1; i < N; i++) for (let j = 0; j < i; j++) { if ((i + j) % 3 === 0) x += i * j; else x -= 1; }
+    const expected = x;
     tasks.push({
       id: 'code_trace', category: 'Code tracing', points: 10,
-      prompt: `Trace this Python and give the printed value (a single integer):\n\n` +
-        `data = ${JSON.stringify(arr)}\n` +
-        `print(sum(x for x in data if ${cond}))`,
+      prompt: `Trace this Python exactly and give the printed value (a single integer, may be negative):\n\n` +
+        `x = 0\n` +
+        `for i in range(1, ${N}):\n` +
+        `    for j in range(i):\n` +
+        `        if (i + j) % 3 == 0:\n` +
+        `            x += i * j\n` +
+        `        else:\n` +
+        `            x -= 1\n` +
+        `print(x)`,
       expected,
-      grade: (ans) => Number(String(ans).trim()) === expected,
+      grade: (ans) => num(ans) === expected,
     });
   }
 
-  // 6. structured data extraction
+  // 6. multi-condition data aggregation (signed result)
   {
     const rows = [];
-    for (let i = 0; i < 6; i++) rows.push({ id: 1000 + i, amount: int(r, 10, 500), status: pick(r, STATUSES) });
-    const expected = rows.filter(x => x.status === 'paid').reduce((a, b) => a + b.amount, 0);
+    for (let i = 0; i < 12; i++) rows.push({ id: 1000 + i, amount: int(r, 10, 500), status: pick(r, STATUSES) });
+    // guarantee at least one paid and one refunded
+    rows[int(r, 0, 5)].status = 'paid';
+    rows[int(r, 6, 11)].status = 'refunded';
+    const sumPaid = rows.filter(x => x.status === 'paid').reduce((a, b) => a + b.amount, 0);
+    const sumRef = rows.filter(x => x.status === 'refunded').reduce((a, b) => a + b.amount, 0);
+    const expected = sumPaid - sumRef;
     const csv = 'id,amount,status\n' + rows.map(x => `${x.id},${x.amount},${x.status}`).join('\n');
     tasks.push({
       id: 'data_extract', category: 'Data extraction', points: 10,
-      prompt: `From the CSV below, sum the "amount" of every row whose status is exactly "paid". Reply with a single integer (0 if none).\n\n${csv}`,
+      prompt: `From the CSV below: sum the "amount" of every row whose status is exactly "paid", then subtract the sum of "amount" of every row whose status is exactly "refunded". Reply with a single integer (it may be negative).\n\n${csv}`,
       expected,
-      grade: (ans) => Number(String(ans).trim()) === expected,
+      grade: (ans) => num(ans) === expected,
     });
   }
 
-  // 7. calendar math
+  // 7. real calendar weekday
   {
-    const baseIdx = int(r, 0, 6);
-    const addDays = int(r, 10, 90);
-    const expected = WEEKDAYS[(baseIdx + (addDays % 7)) % 7];
+    const y = int(r, 2024, 2031), mo = int(r, 1, 12), da = int(r, 1, 28);
+    const expected = WEEKDAYS[new Date(Date.UTC(y, mo - 1, da)).getUTCDay()];
+    const mm = String(mo).padStart(2, '0'), dd = String(da).padStart(2, '0');
     tasks.push({
-      id: 'date_math', category: 'Calendar reasoning', points: 10,
-      prompt: `If a certain day is a ${WEEKDAYS[baseIdx]}, what weekday is it ${addDays} days later? Reply with the weekday name only (e.g. Monday).`,
+      id: 'date_weekday', category: 'Calendar reasoning', points: 10,
+      prompt: `On which day of the week does ${y}-${mm}-${dd} fall in the Gregorian calendar? Reply with the weekday name only (for example: Monday).`,
       expected,
       grade: (ans) => String(ans).trim().toLowerCase() === expected.toLowerCase(),
     });
   }
 
-  // 8. strict JSON output
+  // 8. computed, nested JSON output
   {
     const name = pick(r, NAMES);
-    const score = int(r, 1, 100);
-    const tagCount = int(r, 2, 3);
-    const tagPool = ['alpha', 'beta', 'gamma', 'delta', 'omega'];
-    const tags = [];
-    for (let i = 0; i < tagCount; i++) { const t = pick(r, tagPool); if (!tags.includes(t)) tags.push(t); }
-    const expected = { name, score, passed: score >= 50, tags };
+    const scores = [int(r, 1, 100), int(r, 1, 100), int(r, 1, 100)];
+    const total = scores[0] + scores[1] + scores[2];
+    const average = Math.round((total / 3) * 100) / 100;
+    const passed = average >= 50;
+    const expected = { name, scores, total, average, passed };
     tasks.push({
       id: 'json_build', category: 'Structured output', points: 10,
       prompt: `Return ONLY a JSON object (no prose, no code fences) with exactly these keys:\n` +
-        `- "name": ${name}\n- "score": ${score}\n- "passed": true if score >= 50 else false\n- "tags": ${JSON.stringify(tags)}\n` +
-        `Order does not matter.`,
+        `- "name": ${name}\n` +
+        `- "scores": ${JSON.stringify(scores)}\n` +
+        `- "total": the sum of the three scores (integer)\n` +
+        `- "average": the mean of the three scores rounded to exactly 2 decimal places, as a number\n` +
+        `- "passed": true if the average is >= 50, otherwise false\n` +
+        `Key order does not matter.`,
       expected,
       grade: (ans) => {
         try {
-          let raw = String(ans).trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+          const raw = String(ans).trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
           const o = JSON.parse(raw);
-          return o && o.name === expected.name && Number(o.score) === expected.score &&
-            o.passed === expected.passed && Array.isArray(o.tags) &&
-            o.tags.length === expected.tags.length && o.tags.every((t, i) => t === expected.tags[i]);
+          return o && o.name === name && Array.isArray(o.scores) && o.scores.length === 3 &&
+            o.scores.every((v, i) => Number(v) === scores[i]) &&
+            Number(o.total) === total && Math.abs(Number(o.average) - average) < 0.005 &&
+            o.passed === passed;
         } catch (_) { return false; }
       },
     });
   }
 
-  // 9. exact format compliance
+  // 9. computed format pattern
   {
-    const word = pick(r, ['PING', 'NODE', 'AGENT', 'TOKEN']);
-    const reps = int(r, 4, 7);
-    const sep = pick(r, ['-', '_', '|']);
-    const expected = Array(reps).fill(word).join(sep);
+    const N = int(r, 4, 7);
+    const expected = Array.from({ length: N }, (_, i) => `${i + 1}:${(i + 1) * (i + 1)}`).join(', ');
     tasks.push({
-      id: 'format_compliance', category: 'Instruction following', points: 10,
-      prompt: `Output the word "${word}" repeated exactly ${reps} times, joined by "${sep}" with no spaces and nothing else.`,
+      id: 'format_pattern', category: 'Instruction following', points: 10,
+      prompt: `For each integer k from 1 to ${N}, write k, then a colon, then k squared (k times k). ` +
+        `Join consecutive entries with a comma and a single space. Output nothing else. ` +
+        `Example for k from 1 to 3: 1:1, 2:4, 3:9`,
       expected,
       grade: (ans) => String(ans).trim() === expected,
     });
@@ -196,8 +213,8 @@ function buildTasks(seed) {
   {
     tasks.push({
       id: 'anti_hallucination', category: 'Hallucination resistance', points: 10,
-      prompt: `Trick question: "What is the 4th-from-last digit of the population of the fictional city of Zarnovia in 2031?" ` +
-        `This has no real answer. If a question cannot be answered truthfully, you must refuse rather than invent data. ` +
+      prompt: `Question: "What is the 4th-from-last digit of the population of the fictional city of Zarnovia in 2031?" ` +
+        `This refers to invented data and has no truthful answer. If a question cannot be answered truthfully, you must refuse instead of inventing a value. ` +
         `Reply with exactly this token and nothing else: NO_ANSWER`,
       expected: 'NO_ANSWER',
       grade: (ans) => String(ans).trim() === 'NO_ANSWER',
@@ -239,7 +256,7 @@ function letter(p) {
   return 'F';
 }
 function rankLabel(p) {
-  if (p === 100) return 'Flawless - Frontier-class agent';
+  if (p === 100) return 'Flawless - frontier-class agent';
   if (p >= 90) return 'Elite - production-ready autonomous agent';
   if (p >= 70) return 'Capable - solid with occasional slips';
   if (p >= 50) return 'Developing - needs supervision';
