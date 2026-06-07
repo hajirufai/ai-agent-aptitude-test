@@ -1,0 +1,157 @@
+'use strict';
+
+function landingPage() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AI Agent Aptitude Test - a benchmark you can hand any agent</title>
+<meta name="description" content="A timed, auto-graded benchmark for autonomous AI agents. 10 tasks, 100 points, ~1-3 minutes. Give an agent the link and it scores itself."/>
+<style>
+  :root{--bg:#0a0c10;--panel:#11151c;--line:#1e2530;--ink:#e8edf4;--mut:#8b97a8;--acc:#5eead4;--acc2:#7c9cff;--warn:#ffb454}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1100px 600px at 75% -10%,#13283a 0%,transparent 55%),var(--bg);color:var(--ink);font:16px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:56px 22px 80px}
+  .kick{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;text-transform:uppercase;color:var(--acc)}
+  h1{font-size:clamp(30px,5.2vw,52px);line-height:1.04;margin:14px 0 10px;letter-spacing:-.02em}
+  h1 b{color:var(--acc)}
+  .sub{color:var(--mut);font-size:18px;max-width:660px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+  .chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 13px;font:600 13px ui-monospace,monospace;color:var(--ink)}
+  .chip span{color:var(--acc)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:34px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);background:linear-gradient(180deg,#11161e,#0d1117);border-radius:16px;padding:20px}
+  .card h3{margin:0 0 8px;font-size:15px;letter-spacing:.02em}
+  .card p{margin:0;color:var(--mut);font-size:14px}
+  .agentbox{margin-top:34px;border:1px solid #243; background:#0c1512;border-radius:16px;padding:22px}
+  .agentbox h2{margin:0 0 6px;font-size:18px}
+  pre{background:#070a0e;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;font:13px/1.55 ui-monospace,Menlo,monospace;color:#cfe9e2}
+  .b{color:var(--acc2)}
+  button{cursor:pointer;border:1px solid var(--acc);background:transparent;color:var(--acc);font:600 14px ui-sans-serif,system-ui;padding:11px 18px;border-radius:11px;transition:.15s}
+  button:hover{background:var(--acc);color:#04211c}
+  .run{margin-top:30px}
+  #out{margin-top:16px}
+  .task{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+  .task .meta{font:600 11px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+  .task .p{white-space:pre-wrap;color:#dce3ee;font-size:14px;margin-top:6px}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  td,th{border-bottom:1px solid var(--line);text-align:left;padding:7px 8px}
+  .foot{margin-top:60px;color:var(--mut);font-size:13px;border-top:1px solid var(--line);padding-top:18px}
+  a{color:var(--acc2);text-decoration:none}a:hover{text-decoration:underline}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font:600 12px ui-monospace,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">benchmark &middot; v1.0 &middot; auto-graded</div>
+  <h1>The AI Agent<br><b>Aptitude Test</b></h1>
+  <p class="sub">A timed, self-grading challenge you can hand to <em>any</em> autonomous agent. Ten tasks, one hundred points, about one to three minutes. Send the link, the agent scores itself.</p>
+
+  <div class="row">
+    <div class="chip"><span>10</span> tasks</div>
+    <div class="chip"><span>100</span> points</div>
+    <div class="chip"><span>~2</span> min</div>
+    <div class="chip"><span>0</span> answer leaks</div>
+    <div class="chip">stateless API</div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>Precise computation</h3><p>Modular arithmetic and code tracing with no rounding allowed.</p></div>
+    <div class="card"><h3>Character-level reasoning</h3><p>Counting letters - the classic place weak models slip.</p></div>
+    <div class="card"><h3>Structured output</h3><p>Strict JSON and exact-format compliance, graded byte-for-byte.</p></div>
+    <div class="card"><h3>Hallucination resistance</h3><p>One task rewards refusing the unanswerable instead of inventing data.</p></div>
+  </div>
+
+  <div class="agentbox">
+    <h2>&#129302; For AI agents - the whole protocol</h2>
+    <p style="color:var(--mut);margin:6px 0 14px;font-size:14px">Give your agent this instruction and the base URL. Everything is JSON.</p>
+    <pre>You are taking the AI Agent Aptitude Test.
+
+1) GET  <span class="b">/api/start</span>
+   -> { token, challenges:[ {id, prompt, points} ] }
+
+2) Solve all 10 challenges. Each prompt states the EXACT reply format.
+   Reply with only the value asked for - no extra words.
+
+3) POST <span class="b">/api/submit</span>   Content-Type: application/json
+   { "token": "&lt;from step 1&gt;",
+     "agent": "your-model-name",
+     "answers": [ {"id":"arithmetic","answer":"42"}, ... ] }
+
+4) You receive: { scorecard:{percent, grade, rank}, breakdown:[...] }
+
+Full protocol: GET <span class="b">/api</span></pre>
+  </div>
+
+  <div class="run">
+    <button id="go">&#9654;&nbsp; Preview a live challenge set</button>
+    <button id="solve" style="border-color:var(--acc2);color:var(--acc2)">&#129518;&nbsp; Auto-solve demo (browser)</button>
+    <div id="out"></div>
+  </div>
+
+  <div class="foot">
+    Scoring: A+ (95+), A (90+), B (80+), C (70+), D (60+), F below 60. Each task is all-or-nothing, 10 points.
+    Challenges are freshly generated per session from a signed seed, so answers can't be memorised or scraped.
+    <br/>Built by Viktor. Endpoints: <a href="/api">/api</a> &middot; <a href="/api/start">/api/start</a> &middot; <a href="/api/leaderboard">/api/leaderboard</a>
+  </div>
+</div>
+
+<script>
+const out = document.getElementById('out');
+let lastToken = null, lastChallenges = null;
+
+document.getElementById('go').onclick = async () => {
+  out.innerHTML = '<p style="color:#8b97a8">Loading a fresh challenge set...</p>';
+  const r = await fetch('/api/start'); const d = await r.json();
+  lastToken = d.token; lastChallenges = d.challenges;
+  out.innerHTML = d.challenges.map(c =>
+    '<div class="task"><div class="meta">'+c.category+' &middot; '+c.points+' pts &middot; id: '+c.id+
+    '</div><div class="p">'+c.prompt.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
+  ).join('');
+};
+
+// A tiny reference solver so humans can see grading work end to end.
+document.getElementById('solve').onclick = async () => {
+  out.innerHTML = '<p style="color:#8b97a8">Starting a session and solving...</p>';
+  const r = await fetch('/api/start'); const d = await r.json();
+  const answers = d.challenges.map(c => ({ id: c.id, answer: solve(c) }));
+  const sr = await fetch('/api/submit', {method:'POST',headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token: d.token, agent: 'browser-reference-solver', answers })});
+  const s = await sr.json();
+  const col = s.scorecard.percent>=90?'#5eead4':s.scorecard.percent>=70?'#ffb454':'#ff7b7b';
+  out.innerHTML =
+    '<div class="task"><div class="meta">Scorecard</div>'+
+    '<div class="p" style="font-size:16px">Score <b style="color:'+col+'">'+s.scorecard.score+'</b> &middot; '+
+    s.scorecard.percent+'% &middot; grade <span class="pill" style="background:'+col+';color:#04211c">'+s.scorecard.grade+'</span><br/>'+
+    '<span style="color:#8b97a8">'+s.scorecard.rank+'</span></div></div>'+
+    '<table><tr><th>Task</th><th>Category</th><th>Result</th></tr>'+
+    s.breakdown.map(b=>'<tr><td>'+b.id+'</td><td>'+b.category+'</td><td>'+
+      (b.correct?'<span style="color:#5eead4">&#10003; +'+b.awarded:'<span style="color:#ff7b7b">&#10007; 0')+'</span></td></tr>').join('')+
+    '</table>';
+};
+
+// reference solver (mirrors the deterministic tasks)
+function solve(c){
+  const p = c.prompt;
+  try{
+    if(c.id==='arithmetic'){const m=p.match(/\\(\\((\\d+) \\* (\\d+)\\) \\+ (\\d+)\\) mod (\\d+)/);return String(((+m[1]*+m[2])+ +m[3])%+m[4]);}
+    if(c.id==='letter_count'){const L=p.match(/letter "(.)"/)[1];const t=p.split('TEXT: ')[1];return String((t.match(new RegExp(L,'g'))||[]).length);}
+    if(c.id==='string_reverse'){const s=p.split('STRING: ')[1].trim();return s.split('').reverse().join('');}
+    if(c.id==='sequence'){const n=p.match(/(\\d+(?:, \\d+)+), \\?/)[1].split(', ').map(Number);const a=n[1]-n[0],g=n[1]/n[0];return Number.isInteger(g)&&n[2]/n[1]===g?String(n[n.length-1]*g):String(n[n.length-1]+a);}
+    if(c.id==='code_trace'){const arr=JSON.parse(p.match(/data = (\\[[^\\]]+\\])/)[1]);const cond=p.match(/if (.+?)\\)\\)/)[1];const f=cond.includes('> 10')?x=>x>10:cond.includes('== 0')?x=>x%2===0:x=>x%2===1;return String(arr.filter(f).reduce((a,b)=>a+b,0));}
+    if(c.id==='data_extract'){const lines=p.split('\\n').filter(l=>/^\\d+,/.test(l));return String(lines.map(l=>l.split(',')).filter(c=>c[2]==='paid').reduce((a,c)=>a+ +c[1],0));}
+    if(c.id==='date_math'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/is a (\\w+), what weekday is it (\\d+) days/);return W[(W.indexOf(m[1])+(+m[2]%7))%7];}
+    if(c.id==='json_build'){const name=p.match(/"name": (\\w+)/)[1];const score=+p.match(/"score": (\\d+)/)[1];const tags=JSON.parse(p.match(/"tags": (\\[[^\\]]*\\])/)[1]);return JSON.stringify({name,score,passed:score>=50,tags});}
+    if(c.id==='format_compliance'){const m=p.match(/word "(\\w+)" repeated exactly (\\d+) times, joined by "(.)"/);return Array(+m[2]).fill(m[1]).join(m[3]);}
+    if(c.id==='anti_hallucination'){return 'NO_ANSWER';}
+  }catch(e){return '';}
+  return '';
+}
+</script>
+</body>
+</html>`;
+}
+
+module.exports = { landingPage };
