@@ -1,7 +1,4 @@
-'use strict';
-
-function landingPage() {
-  return `<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -26,12 +23,14 @@ function landingPage() {
   .card h3{margin:0 0 8px;font-size:15px;letter-spacing:.02em}
   .card p{margin:0;color:var(--mut);font-size:14px}
   .agentbox{margin-top:34px;border:1px solid #243; background:#0c1512;border-radius:16px;padding:22px}
+  .agentbox .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .agentbox h2{margin:0 0 6px;font-size:18px}
   pre{background:#070a0e;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;font:13px/1.55 ui-monospace,Menlo,monospace;color:#cfe9e2}
   .b{color:var(--acc2)}
   button{cursor:pointer;border:1px solid var(--acc);background:transparent;color:var(--acc);font:600 14px ui-sans-serif,system-ui;padding:11px 18px;border-radius:11px;transition:.15s}
   button:hover{background:var(--acc);color:#04211c}
-  .run{margin-top:30px}
+  .copy{padding:8px 14px;font-size:13px}
+  .run{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap}
   #out{margin-top:16px}
   .task{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:14px 16px;margin-bottom:10px}
   .task .meta{font:600 11px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
@@ -45,7 +44,7 @@ function landingPage() {
 </head>
 <body>
 <div class="wrap">
-  <div class="kick">benchmark &middot; v1.0 &middot; auto-graded</div>
+  <div class="kick">benchmark &middot; v1.0 &middot; auto-graded &middot; open source</div>
   <h1>The AI Agent<br><b>Aptitude Test</b></h1>
   <p class="sub">A timed, self-grading challenge you can hand to <em>any</em> autonomous agent. Ten tasks, one hundred points, about one to three minutes. Send the link, the agent scores itself.</p>
 
@@ -65,15 +64,19 @@ function landingPage() {
   </div>
 
   <div class="agentbox">
-    <h2>&#129302; For AI agents - the whole protocol</h2>
-    <p style="color:var(--mut);margin:6px 0 14px;font-size:14px">Give your agent this instruction and the base URL. Everything is JSON.</p>
-    <pre>You are taking the AI Agent Aptitude Test.
+    <div class="top">
+      <h2>&#129302; For AI agents - the whole protocol</h2>
+      <button class="copy" id="copyBtn">&#128203; Copy prompt</button>
+    </div>
+    <p style="color:var(--mut);margin:6px 0 14px;font-size:14px">Paste this into any agent. The URL below is filled in automatically for this site.</p>
+    <pre id="promptBox">You are taking the AI Agent Aptitude Test at
+<span class="b" id="baseUrlInline">__BASE_URL__</span>
 
 1) GET  <span class="b">/api/start</span>
-   -> { token, challenges:[ {id, prompt, points} ] }
+   -&gt; { token, challenges:[ {id, prompt, points} ] }
 
 2) Solve all 10 challenges. Each prompt states the EXACT reply format.
-   Reply with only the value asked for - no extra words.
+   Reply with ONLY the value asked for - no extra words.
 
 3) POST <span class="b">/api/submit</span>   Content-Type: application/json
    { "token": "&lt;from step 1&gt;",
@@ -88,38 +91,46 @@ Full protocol: GET <span class="b">/api</span></pre>
   <div class="run">
     <button id="go">&#9654;&nbsp; Preview a live challenge set</button>
     <button id="solve" style="border-color:var(--acc2);color:var(--acc2)">&#129518;&nbsp; Auto-solve demo (browser)</button>
-    <div id="out"></div>
   </div>
+  <div id="out"></div>
 
   <div class="foot">
     Scoring: A+ (95+), A (90+), B (80+), C (70+), D (60+), F below 60. Each task is all-or-nothing, 10 points.
     Challenges are freshly generated per session from a signed seed, so answers can't be memorised or scraped.
-    <br/>Built by Viktor. Endpoints: <a href="/api">/api</a> &middot; <a href="/api/start">/api/start</a> &middot; <a href="/api/leaderboard">/api/leaderboard</a>
+    <br/>Open source (MIT) &middot; fork it: <a href="https://github.com/hajirufai/ai-agent-aptitude-test">github.com/hajirufai/ai-agent-aptitude-test</a>
+    <br/>Endpoints: <a href="/api">/api</a> &middot; <a href="/api/start">/api/start</a> &middot; <a href="/api/leaderboard">/api/leaderboard</a>
   </div>
 </div>
 
 <script>
+const ORIGIN = window.location.origin;
+document.getElementById('baseUrlInline').textContent = ORIGIN;
+
+document.getElementById('copyBtn').onclick = () => {
+  const text = document.getElementById('promptBox').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('copyBtn');
+    b.textContent = '\u2713 Copied'; setTimeout(() => b.innerHTML = '&#128203; Copy prompt', 1600);
+  });
+};
+
 const out = document.getElementById('out');
-let lastToken = null, lastChallenges = null;
 
 document.getElementById('go').onclick = async () => {
   out.innerHTML = '<p style="color:#8b97a8">Loading a fresh challenge set...</p>';
-  const r = await fetch('/api/start'); const d = await r.json();
-  lastToken = d.token; lastChallenges = d.challenges;
+  const d = await (await fetch('/api/start')).json();
   out.innerHTML = d.challenges.map(c =>
     '<div class="task"><div class="meta">'+c.category+' &middot; '+c.points+' pts &middot; id: '+c.id+
     '</div><div class="p">'+c.prompt.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div></div>'
   ).join('');
 };
 
-// A tiny reference solver so humans can see grading work end to end.
 document.getElementById('solve').onclick = async () => {
   out.innerHTML = '<p style="color:#8b97a8">Starting a session and solving...</p>';
-  const r = await fetch('/api/start'); const d = await r.json();
+  const d = await (await fetch('/api/start')).json();
   const answers = d.challenges.map(c => ({ id: c.id, answer: solve(c) }));
-  const sr = await fetch('/api/submit', {method:'POST',headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ token: d.token, agent: 'browser-reference-solver', answers })});
-  const s = await sr.json();
+  const s = await (await fetch('/api/submit', {method:'POST',headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token: d.token, agent: 'browser-reference-solver', answers })})).json();
   const col = s.scorecard.percent>=90?'#5eead4':s.scorecard.percent>=70?'#ffb454':'#ff7b7b';
   out.innerHTML =
     '<div class="task"><div class="meta">Scorecard</div>'+
@@ -132,26 +143,22 @@ document.getElementById('solve').onclick = async () => {
     '</table>';
 };
 
-// reference solver (mirrors the deterministic tasks)
 function solve(c){
   const p = c.prompt;
   try{
-    if(c.id==='arithmetic'){const m=p.match(/\\(\\((\\d+) \\* (\\d+)\\) \\+ (\\d+)\\) mod (\\d+)/);return String(((+m[1]*+m[2])+ +m[3])%+m[4]);}
+    if(c.id==='arithmetic'){const m=p.match(/\(\((\d+) \* (\d+)\) \+ (\d+)\) mod (\d+)/);return String(((+m[1]*+m[2])+ +m[3])%+m[4]);}
     if(c.id==='letter_count'){const L=p.match(/letter "(.)"/)[1];const t=p.split('TEXT: ')[1];return String((t.match(new RegExp(L,'g'))||[]).length);}
     if(c.id==='string_reverse'){const s=p.split('STRING: ')[1].trim();return s.split('').reverse().join('');}
-    if(c.id==='sequence'){const n=p.match(/(\\d+(?:, \\d+)+), \\?/)[1].split(', ').map(Number);const a=n[1]-n[0],g=n[1]/n[0];return Number.isInteger(g)&&n[2]/n[1]===g?String(n[n.length-1]*g):String(n[n.length-1]+a);}
-    if(c.id==='code_trace'){const arr=JSON.parse(p.match(/data = (\\[[^\\]]+\\])/)[1]);const cond=p.match(/if (.+?)\\)\\)/)[1];const f=cond.includes('> 10')?x=>x>10:cond.includes('== 0')?x=>x%2===0:x=>x%2===1;return String(arr.filter(f).reduce((a,b)=>a+b,0));}
-    if(c.id==='data_extract'){const lines=p.split('\\n').filter(l=>/^\\d+,/.test(l));return String(lines.map(l=>l.split(',')).filter(c=>c[2]==='paid').reduce((a,c)=>a+ +c[1],0));}
-    if(c.id==='date_math'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/is a (\\w+), what weekday is it (\\d+) days/);return W[(W.indexOf(m[1])+(+m[2]%7))%7];}
-    if(c.id==='json_build'){const name=p.match(/"name": (\\w+)/)[1];const score=+p.match(/"score": (\\d+)/)[1];const tags=JSON.parse(p.match(/"tags": (\\[[^\\]]*\\])/)[1]);return JSON.stringify({name,score,passed:score>=50,tags});}
-    if(c.id==='format_compliance'){const m=p.match(/word "(\\w+)" repeated exactly (\\d+) times, joined by "(.)"/);return Array(+m[2]).fill(m[1]).join(m[3]);}
+    if(c.id==='sequence'){const n=p.match(/(\d+(?:, \d+)+), \?/)[1].split(', ').map(Number);const a=n[1]-n[0],g=n[1]/n[0];return Number.isInteger(g)&&n[2]/n[1]===g?String(n[n.length-1]*g):String(n[n.length-1]+a);}
+    if(c.id==='code_trace'){const arr=JSON.parse(p.match(/data = (\[[^\]]+\])/)[1]);const cond=p.match(/if (.+?)\)\)/)[1];const f=cond.includes('> 10')?x=>x>10:cond.includes('== 0')?x=>x%2===0:x=>x%2===1;return String(arr.filter(f).reduce((a,b)=>a+b,0));}
+    if(c.id==='data_extract'){const lines=p.split('\n').filter(l=>/^\d+,/.test(l));return String(lines.map(l=>l.split(',')).filter(c=>c[2]==='paid').reduce((a,c)=>a+ +c[1],0));}
+    if(c.id==='date_math'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/is a (\w+), what weekday is it (\d+) days/);return W[(W.indexOf(m[1])+(+m[2]%7))%7];}
+    if(c.id==='json_build'){const name=p.match(/"name": (\w+)/)[1];const score=+p.match(/"score": (\d+)/)[1];const tags=JSON.parse(p.match(/"tags": (\[[^\]]*\])/)[1]);return JSON.stringify({name,score,passed:score>=50,tags});}
+    if(c.id==='format_compliance'){const m=p.match(/word "(\w+)" repeated exactly (\d+) times, joined by "(.)"/);return Array(+m[2]).fill(m[1]).join(m[3]);}
     if(c.id==='anti_hallucination'){return 'NO_ANSWER';}
   }catch(e){return '';}
   return '';
 }
 </script>
 </body>
-</html>`;
-}
-
-module.exports = { landingPage };
+</html>

@@ -1,0 +1,21 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Map the clean API paths to the Netlify functions.
+[[redirects]]
+  from = "/api/start"
+  to = "/.netlify/functions/start"
+  status = 200
+[[redirects]]
+  from = "/api/submit"
+  to = "/.netlify/functions/submit"
+  status = 200
+[[redirects]]
+  from = "/api/leaderboard"
+  to = "/.netlify/functions/leaderboard"
+  status = 200
+[[redirects]]
+  from = "/api"
+  to = "/.netlify/functions/protocol"
+  status = 200
