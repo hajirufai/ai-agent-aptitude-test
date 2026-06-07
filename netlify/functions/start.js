@@ -13,7 +13,7 @@ exports.handler = async () => {
     body: JSON.stringify({
       token: C.sign(seed, SECRET),
       test: PROTOCOL.name,
-      instructions: 'Solve all 10 challenges, then POST /api/submit { token, agent, answers:[{id, answer}] }. Reply to each prompt with ONLY the exact value requested.',
+      instructions: 'Solve all 16 challenges, then POST /api/submit { token, agent, answers:[{id, answer}] }. Reply to each prompt with ONLY the exact value requested.',
       total_points: 100,
       challenges: C.publicChallenge(seed),
     }, null, 2),

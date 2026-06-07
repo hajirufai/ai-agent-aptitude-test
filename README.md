@@ -1,8 +1,12 @@
 # AI Agent Aptitude Test
 
-A timed, auto-graded benchmark you can hand to **any** autonomous AI agent.
-Ten tasks, one hundred points, about one to three minutes. Send the link and the
-agent scores itself.
+A **hard**, auto-graded benchmark you can hand to **any** autonomous AI agent.
+Sixteen tasks across sixteen capability areas, one hundred points, about three to
+five minutes. Send the link and the agent scores itself.
+
+> **Difficulty is the point.** Clearing 50% is genuinely hard. **40%+ marks a
+> strong agent**, 70%+ is elite, and 85%+ is frontier-class. The grading bands
+> are recalibrated for this (see below).
 
 **Live demo:** https://ai-agent-aptitude-test-dfboh.ondigitalocean.app
 
@@ -26,23 +30,29 @@ It is host-agnostic and runs on:
 > GitHub Pages can host the landing page but cannot run the grading API or hide
 > the answer key, so a real benchmark needs one of the serverless or Node options.
 
-## What it measures
+## What it measures (16 capability areas)
 
-| # | Task | Capability |
-|---|------|-----------|
-| 1 | Modular arithmetic | Precise computation |
-| 2 | Letter counting | Character-level reasoning |
-| 3 | String reversal | String manipulation |
-| 4 | Sequence completion | Pattern induction |
-| 5 | Python tracing | Code understanding |
-| 6 | CSV aggregation | Data extraction |
-| 7 | Weekday offset | Calendar reasoning |
-| 8 | Strict JSON | Structured output |
-| 9 | Exact format string | Instruction following |
-| 10 | Unanswerable question | Hallucination resistance |
+| # | Task | Capability | Pts |
+|---|------|-----------|-----|
+| 1 | Three-term modular exponentiation (with subtraction) | Precise computation | 6 |
+| 2 | Letter counting, even-length words only | Character-level reasoning | 6 |
+| 3 | Four-step string transform (incl. Caesar shift) | String manipulation | 6 |
+| 4 | Cubic sequence completion | Pattern induction | 6 |
+| 5 | Long nested-loop Python trace (branching, signed) | Code tracing | 7 |
+| 6 | Multi-condition CSV aggregation | Data extraction | 7 |
+| 7 | Weekday N days after a date (leap-year aware) | Calendar reasoning | 6 |
+| 8 | Computed nested JSON (line items + tax) | Structured output | 6 |
+| 9 | Bitwise hex `(X XOR Y) AND Z` | Bitwise / encoding | 6 |
+| 10 | Chinese-remainder congruences | Constraint satisfaction | 7 |
+| 11 | Ranked-order race deduction | Logical deduction | 7 |
+| 12 | Knights & knaves | Logical deduction | 7 |
+| 13 | Bat-and-ball word problem | Careful reasoning (System-1 trap) | 6 |
+| 14 | Embedded fake instruction in quoted text | Instruction integrity | 6 |
+| 15 | Needle code among look-alike decoys | Long-context retrieval | 5 |
+| 16 | Unanswerable question | Hallucination resistance | 6 |
 
-Each task is all-or-nothing, worth 10 points. Grades: A+ (95+), A (90+), B (80+),
-C (70+), D (60+), F below 60.
+Each task is all-or-nothing. **Hard-mode grade bands:** A+ 85+, A 70+, A- 55+,
+B 40+, C 28+, D 18+, F below 18. **40%+ is a genuinely strong result.**
 
 ## How an agent takes it
 
@@ -53,7 +63,7 @@ fills in the correct URL). The protocol:
 1) GET  /api/start
    -> { token, challenges:[ {id, prompt, points} ] }
 
-2) Solve all 10. Each prompt states the EXACT reply format.
+2) Solve all 16. Each prompt states the EXACT reply format.
 
 3) POST /api/submit   (application/json)
    { "token": "<from step 1>",

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>AI Agent Aptitude Test - a benchmark you can hand any agent</title>
-<meta name="description" content="A timed, auto-graded benchmark for autonomous AI agents. 10 tasks, 100 points, ~1-3 minutes. Give an agent the link and it scores itself."/>
+<title>AI Agent Aptitude Test - a hard benchmark you can hand any agent</title>
+<meta name="description" content="A hard, auto-graded benchmark for autonomous AI agents. 16 tasks across 16 capability areas, 100 points, ~3-5 minutes. Clearing 50% is hard; 40%+ marks a genuinely strong agent."/>
 <style>
   :root{--bg:#0a0c10;--panel:#11151c;--line:#1e2530;--ink:#e8edf4;--mut:#8b97a8;--acc:#5eead4;--acc2:#7c9cff;--warn:#ffb454}
   *{box-sizing:border-box}
@@ -44,22 +44,27 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="kick">benchmark &middot; v1.0 &middot; auto-graded &middot; open source</div>
+  <div class="kick">benchmark &middot; v2.0 &middot; hard mode &middot; auto-graded &middot; open source</div>
   <h1>The AI Agent<br><b>Aptitude Test</b></h1>
-  <p class="sub">A timed, self-grading challenge you can hand to <em>any</em> autonomous agent. Ten tasks, one hundred points, about one to three minutes. Send the link, the agent scores itself.</p>
+  <p class="sub">A <em>hard</em>, self-grading challenge you can hand to <em>any</em> autonomous agent. Sixteen tasks across sixteen capability areas, one hundred points. Clearing 50% is genuinely difficult, and <b style="color:var(--acc)">40%+ marks a strong agent</b>. Send the link, the agent scores itself.</p>
 
   <div class="row">
-    <div class="chip"><span>10</span> tasks</div>
+    <div class="chip"><span>16</span> tasks</div>
+    <div class="chip"><span>16</span> capability areas</div>
     <div class="chip"><span>100</span> points</div>
-    <div class="chip"><span>~2</span> min</div>
+    <div class="chip"><span>~4</span> min</div>
     <div class="chip"><span>0</span> answer leaks</div>
     <div class="chip">stateless API</div>
   </div>
 
   <div class="grid">
-    <div class="card"><h3>Precise computation</h3><p>Modular arithmetic and code tracing with no rounding allowed.</p></div>
-    <div class="card"><h3>Character-level reasoning</h3><p>Counting letters - the classic place weak models slip.</p></div>
-    <div class="card"><h3>Structured output</h3><p>Strict JSON and exact-format compliance, graded byte-for-byte.</p></div>
+    <div class="card"><h3>Precise computation</h3><p>Three-term modular exponentiation and bitwise hex - no rounding, no shortcuts.</p></div>
+    <div class="card"><h3>Constraint satisfaction</h3><p>Chinese-remainder congruences and ranked-order deduction with a single valid solution.</p></div>
+    <div class="card"><h3>Logical deduction</h3><p>Knights &amp; knaves and race-ordering puzzles that punish guessing.</p></div>
+    <div class="card"><h3>Code tracing</h3><p>Long nested-loop simulations with branching and signed results.</p></div>
+    <div class="card"><h3>Careful reasoning</h3><p>System-1 word-problem traps where the intuitive answer is wrong.</p></div>
+    <div class="card"><h3>Instruction integrity</h3><p>A fake instruction is embedded in quoted text - follow the real task, not the injection.</p></div>
+    <div class="card"><h3>Long-context retrieval</h3><p>Find the one needle among look-alike decoy codes.</p></div>
     <div class="card"><h3>Hallucination resistance</h3><p>One task rewards refusing the unanswerable instead of inventing data.</p></div>
   </div>
 
@@ -75,7 +80,8 @@
 1) GET  <span class="b">/api/start</span>
    -&gt; { token, challenges:[ {id, prompt, points} ] }
 
-2) Solve all 10 challenges. Each prompt states the EXACT reply format.
+2) Solve all 16 challenges. Each prompt states the EXACT reply format.
+   Work step by step and verify - many tasks catch answers done "in your head".
    Reply with ONLY the value asked for - no extra words.
 
 3) POST <span class="b">/api/submit</span>   Content-Type: application/json
@@ -95,7 +101,8 @@ Full protocol: GET <span class="b">/api</span></pre>
   <div id="out"></div>
 
   <div class="foot">
-    Scoring: A+ (95+), A (90+), B (80+), C (70+), D (60+), F below 60. Each task is all-or-nothing, 10 points.
+    <b>Hard-mode scoring</b> (recalibrated for difficulty): A+ 85+, A 70+, A- 55+, B 40+, C 28+, D 18+, F below 18.
+    <b style="color:var(--acc)">40%+ is a genuinely strong result</b>; 70%+ is elite; 85%+ is frontier-class. Each task is all-or-nothing.
     Challenges are freshly generated per session from a signed seed, so answers can't be memorised or scraped.
     <br/>Open source (MIT) &middot; fork it: <a href="https://github.com/hajirufai/ai-agent-aptitude-test">github.com/hajirufai/ai-agent-aptitude-test</a>
     <br/>Endpoints: <a href="/api">/api</a> &middot; <a href="/api/start">/api/start</a> &middot; <a href="/api/leaderboard">/api/leaderboard</a>
@@ -131,7 +138,7 @@ document.getElementById('solve').onclick = async () => {
   const answers = d.challenges.map(c => ({ id: c.id, answer: solve(c) }));
   const s = await (await fetch('/api/submit', {method:'POST',headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ token: d.token, agent: 'browser-reference-solver', answers })})).json();
-  const col = s.scorecard.percent>=90?'#5eead4':s.scorecard.percent>=70?'#ffb454':'#ff7b7b';
+  const col = s.scorecard.percent>=70?'#5eead4':s.scorecard.percent>=40?'#ffb454':'#ff7b7b';
   out.innerHTML =
     '<div class="task"><div class="meta">Scorecard</div>'+
     '<div class="p" style="font-size:16px">Score <b style="color:'+col+'">'+s.scorecard.score+'</b> &middot; '+
@@ -144,18 +151,27 @@ document.getElementById('solve').onclick = async () => {
 };
 
 function modpow(base,exp,mod){let b=BigInt(base)%BigInt(mod),e=BigInt(exp),m=BigInt(mod),res=1n;while(e>0n){if(e&1n)res=(res*b)%m;b=(b*b)%m;e>>=1n;}return res;}
+const ALPHA='abcdefghijklmnopqrstuvwxyz';
+function nextTerm(seq){const rows=[seq.slice()];while(rows[rows.length-1].length>1){const l=rows[rows.length-1];const d=[];for(let i=1;i<l.length;i++)d.push(l[i]-l[i-1]);rows.push(d);}let below=rows[rows.length-1][0];for(let i=rows.length-2;i>=0;i--){const r=rows[i];below=r[r.length-1]+below;}return below;}
+function perms(a){if(a.length<=1)return[a.slice()];const o=[];for(let i=0;i<a.length;i++){const rest=a.slice(0,i).concat(a.slice(i+1));for(const x of perms(rest))o.push([a[i],...x]);}return o;}
 function solve(c){
   const p = c.prompt;
   try{
-    if(c.id==='modexp'){const m=p.match(/\((\d+)\^(\d+) \+ (\d+)\^(\d+)\) mod (\d+)/);return String(Number((modpow(+m[1],+m[2],+m[5])+modpow(+m[3],+m[4],+m[5]))%BigInt(+m[5])));}
-    if(c.id==='letter_count'){const L=p.match(/letter "(.)"/)[1];const t=p.split('TEXT: ')[1];return String((t.match(new RegExp(L,'g'))||[]).length);}
-    if(c.id==='string_transform'){const s=p.split('STRING: ')[1].trim();return s.replace(/[aeiou]/g,'').split('').reverse().join('').toUpperCase();}
-    if(c.id==='sequence'){const n=p.match(/(\d+(?:, \d+)+), \?/)[1].split(', ').map(Number);const sd=n[2]-2*n[1]+n[0];return String(n[4]+(n[4]-n[3])+sd);}
-    if(c.id==='code_trace'){const N=+p.match(/range\(1, (\d+)\)/)[1];let x=0;for(let i=1;i<N;i++)for(let j=0;j<i;j++){if((i+j)%3===0)x+=i*j;else x-=1;}return String(x);}
-    if(c.id==='data_extract'){const lines=p.split('\n').filter(l=>/^\d+,/.test(l)).map(l=>l.split(','));const sp=lines.filter(c=>c[2]==='paid').reduce((a,c)=>a+ +c[1],0);const sr=lines.filter(c=>c[2]==='refunded').reduce((a,c)=>a+ +c[1],0);return String(sp-sr);}
-    if(c.id==='date_weekday'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/(\d{4})-(\d{2})-(\d{2})/);return W[new Date(Date.UTC(+m[1],+m[2]-1,+m[3])).getUTCDay()];}
-    if(c.id==='json_build'){const name=p.match(/"name": (\w+)/)[1];const scores=JSON.parse(p.match(/"scores": (\[[^\]]*\])/)[1]);const total=scores.reduce((a,b)=>a+b,0);const average=Math.round(total/3*100)/100;return JSON.stringify({name,scores,total,average,passed:average>=50});}
-    if(c.id==='format_pattern'){const N=+p.match(/from 1 to (\d+)/)[1];return Array.from({length:N},(_,i)=>`${i+1}:${(i+1)*(i+1)}`).join(', ');}
+    if(c.id==='modexp'){const m=p.match(/\((\d+)\^(\d+) \+ (\d+)\^(\d+) - (\d+)\^(\d+)\) mod (\d+)/);const M=BigInt(+m[7]);const raw=modpow(+m[1],+m[2],+m[7])+modpow(+m[3],+m[4],+m[7])-modpow(+m[5],+m[6],+m[7]);return String(Number(((raw%M)+M)%M));}
+    if(c.id==='letter_count'){const L=p.match(/letter "(.)"/)[1];const words=p.split('WORDS: ')[1].trim().split(/\s+/);const re=new RegExp(L,'g');return String(words.filter(w=>w.length%2===0).reduce((a,w)=>a+(w.match(re)||[]).length,0));}
+    if(c.id==='string_transform'){const s=p.split('STRING: ')[1].trim();const s2=s.replace(/[aeiou]/g,'').split('').map(ch=>ALPHA[(ALPHA.indexOf(ch)+1)%26]).join('');return s2.toUpperCase().split('').reverse().join('');}
+    if(c.id==='sequence'){const n=p.match(/(-?\d+(?:, -?\d+)+), \?/)[1].split(', ').map(Number);return String(nextTerm(n));}
+    if(c.id==='code_trace'){const N=+p.match(/range\(1, (\d+)\)/)[1];let x=0;for(let i=1;i<N;i++)for(let j=0;j<i;j++){if((i*j)%4===0)x+=i+j;else if(j%2===0)x-=j;else x+=1;}return String(x);}
+    if(c.id==='data_extract'){const lines=p.split('\n').filter(l=>/^\d+,/.test(l)).map(l=>l.split(','));const X=lines.filter(c=>c[2]==='paid'&&(c[3]==='North'||c[3]==='East')).reduce((a,c)=>a+ +c[1],0);const Y=lines.filter(c=>c[2]==='refunded').reduce((a,c)=>a+ +c[1],0);return String(X-Y);}
+    if(c.id==='date_weekday'){const W=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const m=p.match(/(\d{4})-(\d{2})-(\d{2})/);const off=+p.match(/exactly (\d+) days/)[1];return W[new Date(Date.UTC(+m[1],+m[2]-1,+m[3])+off*86400000).getUTCDay()];}
+    if(c.id==='json_build'){const items=[...p.matchAll(/(SKU-\d+): price (\d+), qty (\d+)/g)].map(m=>({sku:m[1],subtotal:(+m[2])*(+m[3])}));const subtotal=items.reduce((a,b)=>a+b.subtotal,0);const tax=Math.round(subtotal*0.075*100)/100;const grand=Math.round((subtotal+tax)*100)/100;return JSON.stringify({currency:'USD',items,subtotal,tax,grand_total:grand});}
+    if(c.id==='bitwise'){const ms=[...p.matchAll(/0x([0-9A-Fa-f]+)/g)].map(m=>parseInt(m[1],16));return ((ms[0]^ms[1])&ms[2]).toString(16);}
+    if(c.id==='crt'){const cons=[...p.matchAll(/N mod (\d+) = (\d+)/g)].map(m=>[+m[1],+m[2]]);const prod=cons.reduce((a,c)=>a*c[0],1);for(let N=1;N<=prod;N++)if(cons.every(c=>N%c[0]===c[1]))return String(N);return '0';}
+    if(c.id==='logic_order'){const aboveImm=[...p.matchAll(/(\w+) finished immediately ahead of (\w+)\./g)].map(m=>[m[1],m[2]]);const aboveAll=[...p.matchAll(/(\w+) finished ahead of (\w+)\./g)].map(m=>[m[1],m[2]]);const names=[...new Set([].concat(...aboveAll,...aboveImm))];const ord={'1st':1,'2nd':2,'3rd':3,'4th':4,'5th':5}[p.match(/in (\dst|\dnd|\drd|\dth) place/)[1]];for(const pm of perms(names)){const pos={};pm.forEach((n,i)=>pos[n]=i);if(aboveAll.every(([a,b])=>pos[a]<pos[b])&&aboveImm.every(([a,b])=>pos[a]+1===pos[b]))return pm[ord-1];}return '';}
+    if(c.id==='knights_knaves'){const stmts=[...p.matchAll(/(\w+) says: "(\w+) is (a knight|a knave|the same type as me|a different type from me)\."/g)].map(m=>({s:m[1],t:m[2],f:m[3]}));const names=[...new Set([].concat(...stmts.map(x=>[x.s,x.t])))];for(let mask=0;mask<(1<<names.length);mask++){const asg={};names.forEach((n,k)=>asg[n]=Boolean(mask&(1<<k)));const ok=stmts.every(st=>{const sp=asg[st.s],tg=asg[st.t];let cl;if(st.f==='a knight')cl=tg===true;else if(st.f==='a knave')cl=tg===false;else if(st.f==='the same type as me')cl=sp===tg;else cl=sp!==tg;return cl===sp;});if(ok)return String(names.filter(n=>asg[n]).length);}return '';}
+    if(c.id==='system1_trap'){const total=Math.round(parseFloat(p.match(/cost \$([\d.]+) in total/)[1])*100);const diff=(+p.match(/\$(\d+)\.00 more/)[1])*100;return ((total-diff)/2/100).toFixed(2);}
+    if(c.id==='injection_resistance'){const w=p.match(/word "(\w+)"/)[1];const block=p.split('QUOTED TEXT >>>\n')[1].split('\n<<< END')[0];return String((block.match(new RegExp('\\b'+w+'\\b','gi'))||[]).length);}
+    if(c.id==='needle'){return p.match(/verification code is ([A-Z0-9]{6})/i)[1].toUpperCase();}
     if(c.id==='anti_hallucination'){return 'NO_ANSWER';}
   }catch(e){return '';}
   return '';
